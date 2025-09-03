@@ -1,0 +1,600 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>URUA ICBRC — Prototype UI</title>
+  <style>
+    body{font-family:Inter,system-ui,Segoe UI,Arial;background:#f6f8fa;color:#0f172a;padding:18px}
+    header{display:flex;align-items:center;justify-content:space-between}
+    h1{font-size:20px;margin:0}
+    .card{background:white;border-radius:12px;padding:14px;margin:12px 0;box-shadow:0 6px 18px rgba(12,15,30,0.06)}
+    label{display:block;font-size:12px;color:#334155;margin-bottom:6px}
+    input,select,button,textarea{width:100%;padding:8px;border-radius:8px;border:1px solid #e6eef6;font-size:14px}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .small{width:auto;display:inline-block}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:8px;border-bottom:1px solid #eef2f7;text-align:left}
+    .muted{color:#64748b;font-size:13px}
+    .actions{display:flex;gap:8px}
+    .stat{display:inline-block;padding:8px 12px;background:#eef2ff;border-radius:10px;margin-right:8px}
+    .logarea{height:120px}
+    .inline{display:inline-block;width:auto}
+    .small-btn{width:auto;padding:6px 10px}
+    .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+    .wallet-box{background:#fbfbff;padding:10px;border-radius:8px;border:1px solid #eef2f7}
+    .role-pill{display:inline-block;padding:6px 10px;border-radius:999px;background:#eef2ff;margin-right:6px}
+  </style>
+  <!-- NOTE: This prototype intentionally loads Google Maps dynamically only when a valid key is provided. -->
+</head>
+<body>
+  <header>
+    <h1>URUA ICBRC — Prototype UI (geolocation, wallets, admin)</h1>
+    <div>
+      <span class="stat">Mode: Prototype</span>
+      <span class="muted">Maps: <span id="gmStatus">not loaded</span></span>
+    </div>
+  </header>
+
+  <!-- Platform Role Switcher / Global Admin -->
+  <section class="card">
+    <h2>Platform View — Role switcher</h2>
+    <div class="muted">Switch between user views to see role-specific pathways and the MVP wallet for each stakeholder.</div>
+    <div style="display:flex;gap:8px;margin-top:10px;align-items:end">
+      <div style="flex:1">
+        <label>Act as</label>
+        <select id="currentRole">
+          <option value="admin">Admin</option>
+          <option value="picker">Picker</option>
+          <option value="buyback">Buy-back Center</option>
+          <option value="franchise">Franchise / Operator</option>
+        </select>
+      </div>
+      <div style="flex:1">
+        <label>Active user / wallet</label>
+        <select id="activeWallet"></select>
+      </div>
+      <div style="flex:0.6;align-self:end">
+        <button id="impersonateBtn">Switch View</button>
+      </div>
+    </div>
+    <div style="margin-top:8px" class="muted">Note: This switcher changes the UI to the selected stakeholder pathway and updates wallet controls.</div>
+  </section>
+
+  <!-- Wallets & Accounts management -->
+  <section class="card">
+    <h2>Wallets & Accounts (MVP)</h2>
+    <div class="muted">Create simple wallets for stakeholders. Wallets hold ZAM token balances (simulated). Treasury wallet funds payouts.</div>
+    <div class="grid3" style="margin-top:10px">
+      <div>
+        <label>New wallet id</label>
+        <input id="newWalletId" placeholder="picker-101 or buyback-1" />
+        <label style="margin-top:6px">Role</label>
+        <select id="newWalletRole"><option value="picker">Picker</option><option value="buyback">Buy-back</option><option value="franchise">Franchise</option><option value="admin">Admin</option></select>
+        <div style="margin-top:8px"><button id="createWallet">Create Wallet</button></div>
+      </div>
+      <div>
+        <label>Top-up wallet (ZAM)</label>
+        <input id="topupAmount" type="number" placeholder="amount" />
+        <div style="margin-top:8px"><button id="topupBtn">Top-up (from treasury)</button></div>
+      </div>
+      <div>
+        <label>Transfer tokens</label>
+        <select id="transferFrom"></select>
+        <select id="transferTo" style="margin-top:6px"></select>
+        <input id="transferAmt" type="number" placeholder="amount" style="margin-top:6px" />
+        <div style="margin-top:8px"><button id="transferBtn">Transfer</button></div>
+      </div>
+    </div>
+
+    <div style="margin-top:12px;display:flex;gap:12px;align-items:flex-start">
+      <div style="flex:1">
+        <h3>Wallet list</h3>
+        <div id="walletList"></div>
+      </div>
+      <div style="flex:1">
+        <h3>Active wallet details</h3>
+        <div id="walletDetails" class="wallet-box">Select a wallet to view details</div>
+      </div>
+      <div style="flex:1">
+        <h3>Transaction log</h3>
+        <textarea id="txLog" class="logarea" readonly></textarea>
+      </div>
+    </div>
+  </section>
+
+  <!-- Existing UI sections follow (Maps, Collections, Admin, Prices, Claim Queue, Simulation) -->
+
+  <!-- Google Maps loader (dynamic) -->
+  <section class="card">
+    <h2>Maps / Geolocation (optional)</h2>
+    <div class="muted">To enable address autocomplete, paste a Google Maps JavaScript API key (with Places library enabled) and click "Load Places". If you don't have a key, use the browser geolocation or enter coordinates manually.</div>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <div style="flex:1">
+        <label>Google Maps API Key (optional)</label>
+        <input id="gmApiKey" placeholder="Enter API key (leave empty to skip)" />
+      </div>
+      <div style="flex:0.4;align-self:end">
+        <button id="loadMapsBtn" class="small-btn">Load Places</button>
+      </div>
+      <div style="flex:0.6;align-self:end">
+        <button id="clearMapsBtn" class="small-btn">Unload Maps</button>
+      </div>
+    </div>
+    <div style="margin-top:10px;display:flex;gap:8px">
+      <div style="flex:1">
+        <button id="useGeoBtn" class="small-btn">Use Browser Geolocation</button>
+      </div>
+      <div style="flex:1">
+        <button id="editCoordsBtn" class="small-btn">Edit Coordinates</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Collector / Picker log collection UI -->
+  <section class="card" id="collectionCard">
+    <h2>1) Log Collection (Picker)</h2>
+    <div class="muted">This view adapts to the selected role — pickers will see an easy upload form; buy-back centers will see verification tools.</div>
+    <div class="row">
+      <div>
+        <label>Picker ID</label>
+        <input id="pickerId" placeholder="picker-123" />
+      </div>
+      <div>
+        <label>Material Type</label>
+        <select id="materialType">
+          <option value="plastic">Plastic</option>
+          <option value="paper">Paper</option>
+          <option value="metal">Metal</option>
+          <option value="glass">Glass</option>
+        </select>
+      </div>
+    </div>
+    <div style="margin-top:10px">
+      <label>Location (autocomplete)</label>
+      <input id="locationInput" placeholder="Start typing an address... (requires Places)" />
+      <div class="muted" style="margin-top:6px">Latitude: <span id="lat">—</span> &nbsp; Longitude: <span id="lng">—</span></div>
+    </div>
+    <div style="margin-top:10px" class="row">
+      <div>
+        <label>Weight (kg)</label>
+        <input id="weight" type="number" step="0.01" placeholder="e.g. 2.5" />
+      </div>
+      <div>
+        <label>Notes</label>
+        <input id="notes" placeholder="optional" />
+      </div>
+    </div>
+    <div style="margin-top:12px">
+      <button id="submitLog">Create Collection (POST /api/collections)</button>
+    </div>
+    <div class="muted" style="margin-top:8px">This UI will auto-fill lat/lng when Places is enabled. Otherwise use "Use Browser Geolocation" or "Edit Coordinates".</div>
+    <textarea id="logBox" class="logarea" readonly></textarea>
+  </section>
+
+  <!-- Admin verification UI for Buy-Back Centers -->
+  <section class="card" id="adminCard">
+    <h2>2) Admin — Verify weight & Set price (Buy-back center)</h2>
+    <div class="muted">Admin sees incoming collections and can confirm measured weight and set price per kg. Verification moves collection to "verified" and into claim queue.</div>
+    <div style="margin-top:12px">
+      <table id="collectionsTable">
+        <thead><tr><th>Collection ID</th><th>Picker</th><th>Material</th><th>Reported kg</th><th>Measured kg</th><th>Set price/kg</th><th>Status</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div style="margin-top:10px">
+      <button id="refreshCollections">Refresh (local)</button>
+    </div>
+  </section>
+
+  <!-- Off-chain simple price table -->
+  <section class="card">
+    <h2>3) Off-chain Price Table (editable)</h2>
+    <div class="muted">Simple admin-editable price table. Later: integrate Chainlink oracles to sync on-chain.</div>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <div style="flex:1">
+        <label>Material</label>
+        <select id="priceMaterial"><option>plastic</option><option>paper</option><option>metal</option><option>glass</option></select>
+      </div>
+      <div style="flex:1">
+        <label>Price / kg (ZAM tokens)</label>
+        <input id="pricePerKg" type="number" step="0.01" />
+      </div>
+      <div style="flex:0.6;align-self:end">
+        <button id="savePrice">Save</button>
+      </div>
+    </div>
+    <div style="margin-top:12px">
+      <table id="priceTable"><thead><tr><th>Material</th><th>Price/kg</th></tr></thead><tbody></tbody></table>
+    </div>
+  </section>
+
+  <!-- Claim queue & batch signing UI -->
+  <section class="card">
+    <h2>4) Claim Queue — Batch, Sign & Pay</h2>
+    <div class="muted">Claims that are verified move here. Admin can create batches and 'Sign' (simulated multisig) then 'Pay' (simulate on-chain payout).</div>
+    <div style="display:flex;gap:8px;margin-top:12px;align-items:center">
+      <div style="flex:1">
+        <label>Batch size</label>
+        <input id="batchSize" type="number" value="5" />
+      </div>
+      <div style="flex:0.6;align-self:end">
+        <button id="createBatch">Create Batch</button>
+      </div>
+      <div style="flex:0.6;align-self:end">
+        <button id="signBatch">Sign Batch (simulate multisig)</button>
+      </div>
+      <div style="flex:0.6;align-self:end">
+        <button id="payBatch">Pay Batch (simulate payout)</button>
+      </div>
+    </div>
+    <div style="margin-top:12px">
+      <table id="claimQueue"><thead><tr><th>ClaimID</th><th>Picker</th><th>Material</th><th>kg</th><th>Amount(ZAM)</th><th>Status</th></tr></thead><tbody></tbody></table>
+    </div>
+  </section>
+
+  <!-- Simulation harness -->
+  <section class="card">
+    <h2>5) Simulation Harness — many pickers</h2>
+    <div class="muted">Run a quick simulation of N pickers sending collections and measure token flow, average batch size, and gas estimate (simulated).</div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <div style="flex:1"><label>Number of pickers</label><input id="simN" type="number" value="200" /></div>
+      <div style="flex:1"><label>Collections per picker</label><input id="simPer" type="number" value="3" /></div>
+      <div style="flex:1"><label>Avg kg per collection</label><input id="simKg" type="number" value="2.5" step="0.1" /></div>
+      <div style="flex:0.8;align-self:end"><button id="runSim">Run Simulation</button></div>
+    </div>
+    <div style="margin-top:12px">
+      <div class="muted">Simulation results:</div>
+      <div id="simResults"></div>
+    </div>
+  </section>
+
+  <script>
+    // ========== Data store (local-only prototype) ==========
+    const store = {
+      collections: [], // {id, pickerId, material, reportedKg, lat, lng, notes, status, measuredKg, pricePerKg, amount}
+      prices: {plastic:1.2, paper:0.8, metal:2.5, glass:1.1},
+      claimQueue: [],
+      batches: [],
+      wallets: {} // id -> {id, role, balance, txs:[]}
+    };
+
+    // create treasury wallet
+    store.wallets['treasury'] = {id:'treasury', role:'admin', balance:1000000, txs:[]};
+
+    // Utility: random id
+    function uid(prefix='c'){
+      return prefix + '-' + Math.random().toString(36).slice(2,9);
+    }
+
+    // Wallet helpers
+    function createWallet(id, role='picker'){
+      if(!id) id = uid(role);
+      if(store.wallets[id]) { log(`Wallet ${id} already exists`); return store.wallets[id]; }
+      store.wallets[id] = {id, role, balance:0, txs:[]};
+      refreshWalletUI(); log(`Created wallet ${id} (${role})`);
+      return store.wallets[id];
+    }
+
+    function getWallet(id){ return store.wallets[id] || null; }
+
+    function transferTokens(fromId, toId, amount, memo=''){
+      amount = parseFloat(amount)||0;
+      const from = getWallet(fromId); const to = getWallet(toId);
+      if(!from || !to){ log('Invalid from/to wallet'); return false; }
+      if(from.balance < amount){ log(`Insufficient funds: ${fromId} has ${from.balance} ZAM`); return false; }
+      from.balance -= amount; to.balance += amount;
+      const tx = {id: uid('tx'), from:fromId, to:toId, amount, memo, time: new Date().toISOString()};
+      from.txs.push(tx); to.txs.push(tx); store.wallets['treasury'].txs.push(tx);
+      pushTxLog(tx);
+      refreshWalletUI();
+      return true;
+    }
+
+    function topupFromTreasury(toId, amount){ return transferTokens('treasury', toId, amount, 'topup'); }
+
+    function pushTxLog(tx){ const tb = document.getElementById('txLog'); tb.value = `[${tx.time}] ${tx.from} -> ${tx.to} : ${tx.amount} ZAM ${tx.memo ? ' — ' + tx.memo : ''}
+` + tb.value; }
+
+    // UI wallet rendering
+    function refreshWalletUI(){
+      const list = document.getElementById('walletList'); list.innerHTML='';
+      const activeSel = document.getElementById('activeWallet'); const fromSel = document.getElementById('transferFrom'); const toSel = document.getElementById('transferTo');
+      [activeSel, fromSel, toSel].forEach(s=>{ if(s) s.innerHTML=''; });
+      for(const id of Object.keys(store.wallets)){
+        const w = store.wallets[id];
+        const el = document.createElement('div'); el.className='wallet-box'; el.style.marginBottom='8px';
+        el.innerHTML = `<strong>${w.id}</strong> <span class='muted' style='float:right'>${w.role}</span><div>Balance: <strong>${w.balance.toFixed(2)} ZAM</strong></div>`;
+        el.addEventListener('click', ()=>{ showWalletDetails(w.id); });
+        list.appendChild(el);
+        [activeSel, fromSel, toSel].forEach(s=>{ if(s){ const o = document.createElement('option'); o.value = w.id; o.textContent = w.id + ' (' + w.role + ')'; s.appendChild(o); } });
+      }
+      // set defaults
+      if(activeSel && activeSel.options.length>0) activeSel.selectedIndex = 0;
+      if(fromSel && fromSel.options.length>0) fromSel.selectedIndex = 0;
+      if(toSel && toSel.options.length>0) toSel.selectedIndex = 0;
+      showWalletDetails(activeSel ? activeSel.value : null);
+    }
+
+    function showWalletDetails(id){ const details = document.getElementById('walletDetails'); if(!id){ details.innerHTML='Select a wallet to view details'; return; } const w = getWallet(id); if(!w){ details.innerHTML='Wallet not found'; return; }
+      details.innerHTML = `<div><strong>${w.id}</strong> <div class='muted'>Role: ${w.role}</div><div>Balance: <strong>${w.balance.toFixed(2)} ZAM</strong></div><div style='margin-top:8px'><strong>Recent txs</strong></div>`;
+      const ul = document.createElement('div'); ul.style.maxHeight='140px'; ul.style.overflow='auto'; ul.style.marginTop='6px';
+      w.txs.slice().reverse().forEach(tx=>{ const d = document.createElement('div'); d.className='muted'; d.style.fontSize='13px'; d.textContent = `[${tx.time}] ${tx.from} → ${tx.to} : ${tx.amount} ZAM ${tx.memo ? '('+tx.memo+')' : ''}`; ul.appendChild(d); });
+      details.appendChild(ul);
+    }
+
+    // ========== Other helpers (price table, collections, claims) ==========
+    function renderPriceTable(){
+      const tbody = document.querySelector('#priceTable tbody'); tbody.innerHTML='';
+      for(const m of Object.keys(store.prices)){
+        const tr = document.createElement('tr');
+        tr.innerHTML=`<td>${m}</td><td>${store.prices[m].toFixed(2)}</td>`;
+        tbody.appendChild(tr);
+      }
+    }
+
+    function renderCollections(){
+      const tbody = document.querySelector('#collectionsTable tbody'); tbody.innerHTML='';
+      store.collections.forEach(c=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${c.id}</td>
+          <td>${c.pickerId}</td>
+          <td>${c.material}</td>
+          <td>${c.reportedKg}</td>
+          <td><input type='number' value='${c.measuredKg||c.reportedKg}' data-id='${c.id}' class='measured' step='0.01' style='width:80px'/></td>
+          <td><input type='number' value='${c.pricePerKg||store.prices[c.material]}' data-id='${c.id}' class='pricepk' step='0.01' style='width:80px'/></td>
+          <td>${c.status}</td>
+          <td class='actions'><button data-id='${c.id}' class='verifyBtn'>Verify</button></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function renderClaimQueue(){
+      const tbody = document.querySelector('#claimQueue tbody'); tbody.innerHTML='';
+      store.claimQueue.forEach(q=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${q.id}</td><td>${q.pickerId}</td><td>${q.material}</td><td>${q.kg}</td><td>${q.amount.toFixed(2)}</td><td>${q.status}</td>`;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Simulate POST to backend (placeholder) and local store insert
+    function postCollection(payload){
+      payload.id = uid('col');
+      payload.status = 'reported';
+      store.collections.push(payload);
+      log(`Created collection ${payload.id} — ${payload.pickerId} ${payload.material} ${payload.reportedKg}kg @ (${payload.lat},${payload.lng})`);
+      renderCollections();
+    }
+
+    // Verify flow: admin measures, sets price, moves to claimQueue
+    function verifyCollection(id, measuredKg, pricePerKg){
+      const c = store.collections.find(x=>x.id===id);
+      if(!c) return;
+      c.measuredKg = measuredKg;
+      c.pricePerKg = pricePerKg;
+      c.status = 'verified';
+      const amount = measuredKg * pricePerKg;
+      const claim = {id: uid('claim'), collectionId: c.id, pickerId:c.pickerId, material:c.material, kg:measuredKg, amount, status:'queued'};
+      store.claimQueue.push(claim);
+      log(`Verified ${c.id} → claim ${claim.id} amount ${amount.toFixed(2)} ZAM`);
+      renderCollections(); renderClaimQueue();
+    }
+
+    // Batch creation
+    function createBatch(size){
+      const queued = store.claimQueue.filter(q=>q.status==='queued');
+      if(queued.length===0) { log('No queued claims'); return; }
+      const toTake = queued.slice(0,size);
+      const batch = {id: uid('batch'), claims: toTake.map(c=>c.id), status:'created', signed:false, paid:false};
+      toTake.forEach(c=>{ c.status='batched'; });
+      store.batches.push(batch);
+      log(`Created batch ${batch.id} with ${toTake.length} claims`);
+      renderClaimQueue();
+      return batch;
+    }
+
+    // Simulate multisig sign (just set signed true)
+    function signBatch(batchId){
+      const b = store.batches.find(x=>x.id===batchId);
+      if(!b) { log('batch not found'); return; }
+      b.signed = true; b.status='signed';
+      log(`Batch ${b.id} signed by multisig (simulated)`);
+    }
+
+    // Pay batch (simulated): mark claims paid and transfer ZAM from treasury to picker wallets
+    function payBatch(batchId){
+      const b = store.batches.find(x=>x.id===batchId);
+      if(!b) { log('batch not found'); return; }
+      if(!b.signed) { log('Batch must be signed before pay'); return; }
+      b.paid = true; b.status='paid';
+      let total=0; b.claims.forEach(cid=>{
+        const claim = store.claimQueue.find(x=>x.id===cid);
+        if(claim){
+          // transfer to picker wallet if exists
+          const pickerWallet = getWallet(claim.pickerId);
+          if(pickerWallet){
+            const ok = transferTokens('treasury', claim.pickerId, claim.amount, `payout ${claim.id}`);
+            if(ok){ claim.status='paid'; total+=claim.amount; }
+            else { claim.status='failed'; log(`Payout failed for ${claim.id}`); }
+          } else {
+            // if no wallet, mark as pending and keep funds in escrow (simulate treasury holding)
+            claim.status='pending_wallet'; log(`No wallet for ${claim.pickerId} — claim ${claim.id} pending`);
+          }
+        }
+      });
+      log(`Batch ${b.id} processed — total attempted ${total.toFixed(2)} ZAM`);
+      renderClaimQueue(); refreshWalletUI();
+    }
+
+    // Simple logger
+    function log(s){ const lb=document.getElementById('logBox'); lb.value = '['+new Date().toISOString()+'] '+s + '
+' + lb.value; }
+
+    // Hook events
+    document.getElementById('submitLog').addEventListener('click', ()=>{
+      const p = document.getElementById('pickerId').value || uid('picker');
+      // create wallet automatically for a collector if missing
+      if(!getWallet(p)) createWallet(p,'picker');
+      const material = document.getElementById('materialType').value;
+      const reportedKg = parseFloat(document.getElementById('weight').value) || 0;
+      const notes = document.getElementById('notes').value||'';
+      const lat = document.getElementById('lat').textContent;
+      const lng = document.getElementById('lng').textContent;
+      const payload = {pickerId:p, material, reportedKg, lat, lng, notes};
+      postCollection(payload);
+    });
+
+    document.getElementById('refreshCollections').addEventListener('click', renderCollections);
+
+    document.getElementById('savePrice').addEventListener('click', ()=>{
+      const m = document.getElementById('priceMaterial').value;
+      const p = parseFloat(document.getElementById('pricePerKg').value)||0;
+      store.prices[m]=p; renderPriceTable(); log(`Price updated ${m} = ${p} ZAM/kg`);
+    });
+
+    document.getElementById('createBatch').addEventListener('click', ()=>{
+      const size = parseInt(document.getElementById('batchSize').value)||5; createBatch(size);
+    });
+
+    document.getElementById('signBatch').addEventListener('click', ()=>{
+      const b = store.batches.find(x=>x.status==='created'); if(!b){ log('No created batch to sign (choose a created one)'); return;} signBatch(b.id);
+    });
+
+    document.getElementById('payBatch').addEventListener('click', ()=>{
+      const b = store.batches.find(x=>x.status==='signed'); if(!b){ log('No signed batch to pay'); return;} payBatch(b.id);
+    });
+
+    // Wallet management events
+    document.getElementById('createWallet').addEventListener('click', ()=>{
+      const id = document.getElementById('newWalletId').value.trim(); const role = document.getElementById('newWalletRole').value;
+      createWallet(id, role); document.getElementById('newWalletId').value='';
+    });
+
+    document.getElementById('topupBtn').addEventListener('click', ()=>{
+      const to = document.getElementById('activeWallet').value; const amt = parseFloat(document.getElementById('topupAmount').value)||0;
+      if(!to){ log('Select a wallet to top-up'); return; }
+      const ok = topupFromTreasury(to, amt);
+      if(ok) log(`Top-up ${amt} ZAM to ${to}`);
+      document.getElementById('topupAmount').value='';
+    });
+
+    document.getElementById('transferBtn').addEventListener('click', ()=>{
+      const from = document.getElementById('transferFrom').value; const to = document.getElementById('transferTo').value; const amt = parseFloat(document.getElementById('transferAmt').value)||0;
+      if(!from || !to){ log('Select from and to wallets'); return; }
+      const ok = transferTokens(from, to, amt, 'manual transfer');
+      if(ok) log(`Transferred ${amt} from ${from} to ${to}`);
+      document.getElementById('transferAmt').value='';
+    });
+
+    document.getElementById('impersonateBtn').addEventListener('click', ()=>{
+      const role = document.getElementById('currentRole').value; const wallet = document.getElementById('activeWallet').value;
+      applyRoleView(role, wallet);
+    });
+
+    // Delegate events for verify inputs and verify button
+    document.addEventListener('click', (ev)=>{
+      if(ev.target.classList.contains('verifyBtn')){
+        const id = ev.target.getAttribute('data-id');
+        const measuredInput = document.querySelector(`.measured[data-id='${id}']`);
+        const priceInput = document.querySelector(`.pricepk[data-id='${id}']`);
+        const measured = parseFloat(measuredInput.value)||0;
+        const pricepk = parseFloat(priceInput.value)||store.prices[ store.collections.find(x=>x.id===id).material ];
+        // if buyback admin verifies, ensure buyback wallet exists
+        const pickerId = store.collections.find(x=>x.id===id).pickerId;
+        if(!getWallet(pickerId)) createWallet(pickerId,'picker');
+        verifyCollection(id, measured, pricepk);
+      }
+    });
+
+    // ========== Google Maps dynamic loader & fallback ==========
+    window._gmLoading = false; window._gmLoaded = false;
+    window.gm_authFailure = function(){ window._gmLoading = false; window._gmLoaded = false; const status = document.getElementById('gmStatus'); if(status) status.textContent = 'auth failed (invalid key) — using fallbacks'; log('Google Maps API authentication failed (invalid key). Using fallbacks.'); };
+
+    function loadGoogleMaps(apiKey){
+      if(!apiKey){ document.getElementById('gmStatus').textContent = 'no API key provided — not loading'; return; }
+      if(window._gmLoading || window._gmLoaded){ document.getElementById('gmStatus').textContent = 'already loading/loaded'; return; }
+      window._gmLoading = true; document.getElementById('gmStatus').textContent = 'loading...';
+      window.__initGoogleMaps = function(){ window._gmLoading = false; window._gmLoaded = true; document.getElementById('gmStatus').textContent = 'loaded — Places ready'; log('Google Maps JS loaded successfully. Places autocomplete is ready.'); try{ initAutocomplete(); }catch(e){ console.warn('initAutocomplete error', e); } };
+      const script = document.createElement('script');
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&libraries=places&callback=__initGoogleMaps`;
+      script.async = true; script.defer = true;
+      script.onerror = function(){ window._gmLoading = false; window._gmLoaded = false; document.getElementById('gmStatus').textContent = 'script load error (network or invalid key)'; log('Failed to load Google Maps script (network or invalid key).'); };
+      document.head.appendChild(script);
+    }
+
+    function unloadGoogleMaps(){ window._gmLoaded = false; window._gmLoading = false; delete window.__initGoogleMaps; document.getElementById('gmStatus').textContent = 'unloaded'; log('Google Maps unloaded (UI fallback enabled).'); }
+
+    function initAutocomplete(){ const input = document.getElementById('locationInput'); if(typeof google==='undefined' || !google.maps || !google.maps.places){ log('Google Places not available. Leave API key empty or load a valid key to enable address autocomplete.'); return; } const autocomplete = new google.maps.places.Autocomplete(input, {types:['geocode']}); autocomplete.addListener('place_changed', ()=>{ const place = autocomplete.getPlace(); if(!place || !place.geometry){ log('Place has no geometry — choose a different suggestion or use geolocation.'); return; } const lat = place.geometry.location.lat(); const lng = place.geometry.location.lng(); document.getElementById('lat').textContent = lat.toFixed(6); document.getElementById('lng').textContent = lng.toFixed(6); }); }
+
+    // ========== Geolocation & manual coords ==========
+    document.getElementById('useGeoBtn').addEventListener('click', ()=>{ if(!navigator.geolocation){ log('Browser geolocation not supported'); return; } document.getElementById('gmStatus').textContent = 'using browser geolocation'; navigator.geolocation.getCurrentPosition(pos=>{ const lat = pos.coords.latitude; const lng = pos.coords.longitude; document.getElementById('lat').textContent = lat.toFixed(6); document.getElementById('lng').textContent = lng.toFixed(6); log('Filled coordinates from browser geolocation'); }, err=>{ log('Geolocation error: ' + (err && err.message ? err.message : err)); }, {timeout:10000}); });
+
+    document.getElementById('editCoordsBtn').addEventListener('click', ()=>{ const curLat = document.getElementById('lat').textContent.replace('—',''); const curLng = document.getElementById('lng').textContent.replace('—',''); const lat = prompt('Enter latitude', curLat && curLat.trim() ? curLat : ''); const lng = prompt('Enter longitude', curLng && curLng.trim() ? curLng : ''); if(lat !== null && lng !== null && lat !== '' && lng !== ''){ const fLat = parseFloat(lat); const fLng = parseFloat(lng); if(!isNaN(fLat) && !isNaN(fLng)){ document.getElementById('lat').textContent = fLat.toFixed(6); document.getElementById('lng').textContent = fLng.toFixed(6); log('Coordinates manually set'); } else { log('Invalid coordinates entered'); } } });
+
+    document.getElementById('loadMapsBtn').addEventListener('click', ()=>{ const key = document.getElementById('gmApiKey').value.trim(); loadGoogleMaps(key); });
+    document.getElementById('clearMapsBtn').addEventListener('click', ()=>{ unloadGoogleMaps(); });
+
+    // ========== Simulation harness ==========
+    document.getElementById('runSim').addEventListener('click', ()=>{
+      const N = parseInt(document.getElementById('simN').value)||100;
+      const per = parseInt(document.getElementById('simPer').value)||2;
+      const avgKg = parseFloat(document.getElementById('simKg').value)||2.0;
+      // generate
+      let totalCollections=0; let totalKg=0; let totalAmount=0;
+      for(let i=0;i<N;i++){
+        const picker = 'picker-'+(i+1);
+        if(!getWallet(picker)) createWallet(picker,'picker');
+        for(let j=0;j<per;j++){
+          const kg = Math.max(0.1, (Math.random()*0.8+0.6)*avgKg);
+          const materialKeys = Object.keys(store.prices);
+          const material = materialKeys[Math.floor(Math.random()*materialKeys.length)];
+          const price = store.prices[material];
+          // create and auto-verify (simulate buy-back center auto measuring)
+          const col = {id:uid('col'), pickerId:picker, material, reportedKg:kg.toFixed(2), lat:0, lng:0, notes:'sim', status:'reported'};
+          store.collections.push(col);
+          // admin measures same kg (for sim) and uses price table
+          const measured = parseFloat(col.reportedKg);
+          const amount = measured * price;
+          const claim = {id:uid('claim'), collectionId:col.id, pickerId:picker, material, kg:measured, amount, status:'queued'};
+          store.claimQueue.push(claim);
+          totalCollections++; totalKg += measured; totalAmount+=amount;
+        }
+      }
+      // simulate batch creation with batch size 50
+      const batchSize = 50; let batches=0; let batchedClaims=0;
+      while(store.claimQueue.some(c=>c.status==='queued')){
+        const b = createBatch(batchSize);
+        if(!b) break; signBatch(b.id); payBatch(b.id); batches++; batchedClaims += b.claims.length;
+      }
+      const avgPerCollection = totalAmount/totalCollections;
+      const resultsEl = document.getElementById('simResults');
+      resultsEl.innerHTML = `Collections: ${totalCollections} — Total kg: ${totalKg.toFixed(2)}kg — Total ZAM: ${totalAmount.toFixed(2)} — Avg per collection: ${avgPerCollection.toFixed(2)} ZAM — Batches processed: ${batches} — Claims paid: ${batchedClaims}`;
+      log(`Simulation complete: ${totalCollections} collections → ${totalAmount.toFixed(2)} ZAM across ${batches} batches`);
+      renderCollections(); renderClaimQueue();
+    });
+
+    // ========== Role-specific UI wiring ==========
+    function applyRoleView(role, walletId){
+      // hide/show cards or change text depending on role
+      document.getElementById('collectionCard').style.display = (role==='picker' || role==='buyback' || role==='franchise') ? 'block' : 'block';
+      document.getElementById('adminCard').style.display = (role==='admin' || role==='buyback') ? 'block' : 'none';
+      // show role pill
+      document.querySelectorAll('.role-pill').forEach(p=>p.remove());
+      const header = document.querySelector('header'); const pill = document.createElement('span'); pill.className='role-pill'; pill.textContent = `Acting as ${role}${walletId ? ' — ' + walletId : ''}`; header.appendChild(pill);
+      // set active wallet selection
+      if(walletId){ const sel = document.getElementById('activeWallet'); for(let i=0;i<sel.options.length;i++){ if(sel.options[i].value===walletId) sel.selectedIndex=i; } showWalletDetails(walletId); }
+      log(`Switched view to ${role}${walletId ? ' as '+walletId : ''}`);
+    }
+
+    // ========== Init ==========
+    // create a default admin wallet for treasury operator
+    createWallet('admin-1','admin');
+    // ensure treasury exists (already seeded)
+    refreshWalletUI(); renderPriceTable(); renderCollections(); renderClaimQueue();
+
+  </script>
+</body>
+</html>
